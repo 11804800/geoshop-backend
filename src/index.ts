@@ -1,14 +1,24 @@
+import bodyParser from 'body-parser';
 import { configDotenv } from 'dotenv';
 configDotenv();
 
-import express from 'express'
+import express, { Request, Response } from 'express'
+import path from 'path';
+
 
 const app: any = express();
 
 const PORT: string | number = process.env.PORT || 3000;
 
-app.get("/", (req: express.Request, res: express.Response) => {
-    res.send("hello");
+
+app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.json());
+app.use(bodyParser.json());
+
+app.get("/health", (req: Request, res: Response) => {
+    res.status(200).json({
+        "health": "ok"
+    })
 });
 
 app.listen(PORT, () => {
