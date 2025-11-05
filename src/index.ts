@@ -4,7 +4,20 @@ configDotenv();
 
 import express, { Request, Response } from 'express'
 import path from 'path';
+import ProductRouter from './route/ProductRouter';
+import mongoose from 'mongoose';
 
+const MongoDB_url = process.env.MONGODB_URL;
+
+if (!MongoDB_url) {
+    throw new Error("Environment Variable Mongodb url is not defined");
+}
+
+mongoose.connect(MongoDB_url).then((db: any) => {
+    console.log("connected");
+}).catch((err: any) => {
+    console.log(err);
+});
 
 const app: any = express();
 
@@ -20,6 +33,8 @@ app.get("/health", (req: Request, res: Response) => {
         "health": "ok"
     })
 });
+
+app.use('/api/products', ProductRouter);
 
 app.listen(PORT, () => {
     console.log("App is running at ", PORT);
