@@ -1,3 +1,4 @@
+import Stripe from "stripe";
 import bodyParser from 'body-parser';
 import { configDotenv } from 'dotenv';
 configDotenv();
@@ -44,8 +45,9 @@ const app: any = express();
 const PORT: string | number = process.env.PORT || 3000;
 
 app.use(cors(corsWithOptions));
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "../public")));
 app.use(bodyParser.json());
 
 app.get("/health", (req: Request, res: Response) => {
@@ -53,6 +55,54 @@ app.get("/health", (req: Request, res: Response) => {
         "health": "ok"
     })
 });
+
+const stripe_key: any = process.env.STRIPE_SECRET_KEY;
+const stripe = new Stripe(stripe_key);
+
+app.post("/api/create-checkout-session", async (req: Request, res: Response) => {
+    try {
+        const product = await stripe.products.create({
+            name: req.body.name
+        });
+        const currency = req.body.currency == "usa" ? "USD" : req.body.currency == "uk" ? "GBP" : "INR";
+        let amountInPaise = req.body.price;
+        if (currency == "USD") {
+            amountInPaise = (amountInPaise / 88.73) * 100;
+        }
+        else if (currency == "GBP") {
+            amountInPaise = (amountInPaise / 115.78) * 100;
+        }
+        else {
+            amountInPaise = amountInPaise * 100;
+        }
+        const price = await stripe.prices.create({
+            product: product.id,
+            unit_amount: Math.round(amountInPaise),
+            currency: currency
+        });
+
+        const session: any = await stripe.checkout.sessions.create({
+            payment_method_types: ["card"],
+            line_items: [
+                {
+                    price: price.id,
+                    quantity: 1,
+                }
+            ],
+            mode: 'payment',
+            success_url: `https://geoshop-frontend.vercel.app/status`,
+            cancel_url: `https://geoshop-frontend.vercel.app/status/cancelled`,
+            billing_address_collection: "required",
+            shipping_address_collection: {
+                allowed_countries: ["IN", "US", "GB"]
+            }
+        });
+        res.redirect(303, session.url);
+    }
+    catch (err: any) {
+        res.status(500).json({ err: err.message });
+    }
+})
 
 app.use('/api/products', ProductRouter);
 
