@@ -10,7 +10,8 @@ import mongoose from 'mongoose';
 const MongoDB_url = process.env.MONGODB_URL;
 
 const allowedOrigins = [
-    "http://localhost:3001"
+    "http://localhost:3001",
+    "https://geoshop-frontend.vercel.app"
 ];
 
 const corsWithOptions = {
